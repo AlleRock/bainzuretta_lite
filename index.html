@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Bainzuretta Lite</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lobster&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#fb8c00">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bainz Lite">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/AlleRock/bainzuretta_lite/main/icona.png?v=1">
+
+    <style>
+        :root { --primary: #fb8c00; --bg: #f0f2f5; --card: #ffffff; --text: #111111; --border: #888888; }
+        @media (prefers-color-scheme: dark) { :root { --bg: #000000; --card: #1c1c1e; --text: #ffffff; --border: #444444; } }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        html, body { height: 100%; overscroll-behavior: none; }
+        body {
+            font-family: 'Outfit', sans-serif; font-size: 17px; background: var(--bg); color: var(--text);
+            height: 100dvh; overflow: hidden; display: flex; flex-direction: column;
+        }
+        header {
+            flex-shrink: 0;
+            background: var(--primary); color: white; text-align: center; font-weight: 900;
+            font-family: 'Lobster', cursive; font-size: 2.6em; letter-spacing: 1px; line-height: 1.15;
+            padding: calc(6px + env(safe-area-inset-top)) 15px 6px 15px;
+        }
+        #pages { flex: 1; min-height: 0; display: flex; }
+        .page { display: none; flex: 1; min-height: 0; flex-direction: column; width: 100%; max-width: 500px; margin: 0 auto; }
+        .page.active { display: flex; }
+        .fixed-block { flex-shrink: 0; padding: 12px 12px 0 12px; }
+        .scroll-block { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px; }
+        .card { background: var(--card); padding: 15px; border-radius: 20px; border: 1px solid var(--border); margin-bottom: 12px; }
+        select { width: 100%; height: 45px; padding: 0 10px; border: 2px solid var(--border); border-radius: 12px; background: var(--card); color: var(--text); font-size: 16px; -webkit-appearance: none; margin-top: 10px; }
+        .btn-strava { background: #FC4C02; color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 900; width: 100%; cursor: pointer; font-size: 13px; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-sync { background: #FC4C02; color: white; border: none; padding: 10px; border-radius: 10px; width: 100%; font-weight: bold; font-size: 11px; margin-bottom: 5px; cursor: pointer; }
+        .btn-sync:disabled { background: #aaa; cursor: not-allowed; }
+        .strava-status { font-size: 11px; text-align: center; padding: 5px; border-radius: 8px; margin-bottom: 5px; }
+        .strava-status.ok { background: rgba(252,76,2,0.1); color: #FC4C02; }
+        .strava-status.ko { background: rgba(255,59,48,0.1); color: #ff3b30; }
+        .strava-badge { background: #FC4C02; color: white; font-size: 9px; padding: 1px 5px; border-radius: 4px; font-weight: bold; }
+        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #toast { position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: bold; z-index: 9999; display: none; max-width: 90%; text-align: center; }
+
+        nav { flex-shrink: 0; width: 100%; height: 70px; background: var(--card); display: flex; border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); }
+        nav div { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #888; font-size: 9px; flex-direction: column; }
+        nav div span { margin-top: 2px; }
+        nav div.active { color: var(--primary); border-top: 4px solid var(--primary); }
+
+        /* Home */
+        #home-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; padding: 20px; }
+        #home-wrap .card { text-align: center; }
+        .home-tagline { font-size: 0.78em; opacity: 0.6; margin-bottom: 12px; }
+
+        /* Diario Lite */
+        .lite-month-divider { color: var(--primary); font-weight: 900; font-size: 0.85em; letter-spacing: 0.5px; margin: 16px 0 8px 0; }
+        .lite-month-divider:first-child { margin-top: 0; }
+        .lite-activity { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 10px 10px 12px 10px; margin-bottom: 10px; cursor: pointer; }
+        .lite-activity-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 0 2px; gap: 8px; }
+        .lite-activity-date { font-weight: 900; font-size: 0.9em; color: var(--text); white-space: nowrap; }
+        .lite-activity-note { font-size: 0.8em; font-style: italic; opacity: 0.75; line-height: 1.35; margin: 0 2px 8px 2px; white-space: normal; word-break: break-word; }
+
+        .lite-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10000; align-items: center; justify-content: center; padding: 20px; padding-top: calc(20px + env(safe-area-inset-top)); padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+        .lite-modal { background: var(--card); border-radius: 20px; padding: 20px; max-width: 420px; width: 100%; max-height: 85vh; overflow-y: auto; -webkit-overflow-scrolling: touch; position: relative; }
+        .lite-modal-close { position: absolute; top: 12px; right: 14px; font-size: 1.4em; font-weight: 900; color: #999; cursor: pointer; line-height: 1; }
+        .lite-modal-note { font-size: 0.95em; font-style: italic; line-height: 1.5; background: rgba(251,140,0,0.08); border-radius: 12px; padding: 12px; margin: 4px 0 12px 0; white-space: pre-wrap; word-break: break-word; }
+        .lite-recap { background: var(--primary); color: white; padding: 10px 12px; border-radius: 15px; margin-top: 10px; }
+        .lite-recap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }
+        .lite-recap-grid div { text-align: center; }
+        .lite-recap-grid small { display: block; font-size: 0.6em; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px; }
+        .lite-recap-grid b { font-size: 0.95em; }
+        .lite-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .lite-stat { background: rgba(251, 140, 0, 0.1); border-radius: 10px; padding: 6px 4px; text-align: center; }
+        .lite-stat small { display: block; font-size: 0.58em; font-weight: 700; color: var(--text); opacity: 0.55; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+        .lite-stat b { font-size: 0.85em; color: var(--primary); }
+        .lite-empty { text-align: center; opacity: 0.5; padding: 30px 10px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<div class="lite-modal-overlay" id="lite-modal-overlay" onclick="chiudiDettaglio()">
+    <div class="lite-modal" onclick="event.stopPropagation()">
+        <span class="lite-modal-close" onclick="chiudiDettaglio()">&times;</span>
+        <div id="lite-modal-body"></div>
+    </div>
+</div>
+<header>Bainzuretta Lite</header>
+
+<div id="pages">
+    <div id="diario" class="page active">
+        <div class="fixed-block">
+            <div class="card" style="text-align:center; margin-bottom:0;">
+                <h3 style="margin:0; font-size: 1em;">DIARIO</h3>
+                <select id="sel-anno-lite" onchange="disegnaLite()"></select>
+            </div>
+            <div id="recap-lite"></div>
+        </div>
+        <div class="scroll-block"><div id="lista-lite"></div></div>
+    </div>
+
+    <div id="settings" class="page">
+        <div id="home-wrap">
+            <div class="card">
+                <div class="home-tagline">Sincronizza le tue attivit&agrave; Strava</div>
+                <div id="strava-section"></div>
+            </div>
+            <div class="card" style="text-align:center;">
+                <div class="home-tagline" style="margin-bottom:8px;">Esporta attivit&agrave; in PDF</div>
+                <select id="sel-anno-pdf"></select>
+                <button class="btn-sync" style="margin-top:10px;" onclick="scaricaPdfAnno()">SCARICA PDF</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<nav>
+    <div id="nav-diario" class="active" onclick="vaiA('diario')">&#128214;<span>DIARIO</span></div>
+    <div id="nav-settings" onclick="vaiA('settings')">&#9881;&#65039;<span>SETTINGS</span></div>
+</nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+    // ==== CONFIG ====
+    // NB: se cambi ancora repo/percorso di pubblicazione, aggiorna SOLO questa riga
+    // (deve restare sullo stesso dominio autorizzato su Strava: allerock.github.io).
+    const STRAVA_CLIENT_ID = '210700';
+    const STRAVA_REDIRECT_URI = 'https://allerock.github.io/bainzuretta_lite/';
+    const STRAVA_SCOPE = 'activity:read_all';
+    const TIPI_VALIDI = ['Ride', 'VirtualRide', 'EBikeRide', 'MountainBikeRide'];
+
+    // Chiavi condivise con Bainzuretta (stesso dominio => se sei gia' loggato li', lo sei anche qui)
+    const K_TOKEN = 'bainzuretta_strava';
+    const K_SECRET = 'bainzuretta_strava_secret';
+    // Dati propri di Lite (campi extra: frequenza cardiaca, calorie)
+    const K_RAW_LITE = 'bainzuretta_lite_raw';
+
+    const mesiNomi = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+
+    let liteData = [];
+    let stravaToken = null;
+    const oggi = new Date();
+    const currY = oggi.getFullYear();
+
+    function showToast(msg, duration = 3000) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', duration);
+    }
+
+    function formattaTempo(oreDec) {
+        let totalSec = Math.round((oreDec || 0) * 3600);
+        let h = Math.floor(totalSec / 3600);
+        let m = Math.floor((totalSec % 3600) / 60);
+        let s = totalSec % 60;
+        return `${h}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    }
+
+    // ==== STRAVA LOGIN (identico a Bainzuretta) ====
+    function loadStravaToken() {
+        try { const raw = localStorage.getItem(K_TOKEN); return raw ? JSON.parse(raw) : null; } catch { return null; }
+    }
+    function saveStravaToken(t) { localStorage.setItem(K_TOKEN, JSON.stringify(t)); }
+    function clearStravaToken() { localStorage.removeItem(K_TOKEN); stravaToken = null; }
+
+    function stravaLogin() {
+        localStorage.setItem('bainzuretta_strava_pending', '1');
+        const url = `https://www.strava.com/oauth/authorize?client_id=${STRAVA_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(STRAVA_REDIRECT_URI)}&approval_prompt=auto&scope=${STRAVA_SCOPE}`;
+        window.location.href = url;
+    }
+
+    async function stravaExchangeCode(code) {
+        try {
+            const secret = window._stravaSecret || localStorage.getItem(K_SECRET) || '';
+            const resp = await fetch('https://www.strava.com/oauth/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ client_id: STRAVA_CLIENT_ID, client_secret: secret, grant_type: 'authorization_code', code })
+            });
+            if (!resp.ok) return null;
+            return await resp.json();
+        } catch { return null; }
+    }
+
+    function showStravaSecretPrompt(code) {
+        const secret = prompt('Bainzuretta Lite e\' un\'app personale.\n\nPer completare la connessione Strava inserisci il tuo Client Secret\n(lo trovi su strava.com/settings/api).\n\nViene salvato solo sul tuo dispositivo, mai inviato a terzi.');
+        if (!secret) { showToast('Connessione annullata'); return; }
+        window._stravaSecret = secret;
+        localStorage.setItem(K_SECRET, secret);
+        stravaExchangeCode(code).then(tokenData => {
+            if (tokenData && tokenData.access_token) {
+                saveStravaToken(tokenData); stravaToken = tokenData;
+                aggiornaStravaSection(); sincronizzaLite(true);
+                showToast('Connesso a Strava!');
+            } else { showToast('Errore - controlla il Client Secret'); }
+        });
+    }
+
+    async function handleStravaCallback() {
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        const error = params.get('error');
+        window.history.replaceState({}, '', window.location.pathname);
+        if (error || !code) return;
+        localStorage.removeItem('bainzuretta_strava_pending');
+        showToast('Connessione a Strava in corso...');
+        const tokenData = await stravaExchangeCode(code);
+        if (tokenData && tokenData.access_token) {
+            saveStravaToken(tokenData); stravaToken = tokenData;
+            aggiornaStravaSection(); await sincronizzaLite(true);
+            showToast('Connesso a Strava!');
+        } else {
+            showStravaSecretPrompt(code);
+        }
+    }
+
+    async function refreshStravaToken() {
+        const secret = window._stravaSecret || localStorage.getItem(K_SECRET) || '';
+        try {
+            const resp = await fetch('https://www.strava.com/oauth/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ client_id: STRAVA_CLIENT_ID, client_secret: secret, grant_type: 'refresh_token', refresh_token: stravaToken.refresh_token })
+            });
+            if (!resp.ok) return false;
+            const data = await resp.json();
+            stravaToken = { ...stravaToken, access_token: data.access_token, refresh_token: data.refresh_token, expires_at: data.expires_at };
+            saveStravaToken(stravaToken);
+            return true;
+        } catch { return false; }
+    }
+
+    async function getValidToken() {
+        if (!stravaToken) return null;
+        if (stravaToken.expires_at && Date.now() / 1000 > stravaToken.expires_at - 300) {
+            const ok = await refreshStravaToken();
+            if (!ok) { clearStravaToken(); aggiornaStravaSection(); return null; }
+        }
+        return stravaToken.access_token;
+    }
+
+    function aggiornaStravaSection() {
+        const section = document.getElementById('strava-section');
+        if (stravaToken) {
+            const name = stravaToken.athlete ? stravaToken.athlete.firstname : '';
+            section.innerHTML = `
+                <div class="strava-status ok">Connesso a Strava${name ? ' come <b>' + name + '</b>' : ''}</div>
+                <button class="btn-sync" id="btn-sync-lite" onclick="sincronizzaLite(true)">SINCRONIZZA STRAVA</button>
+                <button onclick="disconnettiStrava()" style="background:transparent; color:#aaa; border:none; font-size:10px; cursor:pointer;">Disconnetti</button>
+            `;
+        } else {
+            section.innerHTML = `
+                <div class="strava-status ko">Strava non collegato</div>
+                <button class="btn-strava" onclick="stravaLogin()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+                    CONNETTI CON STRAVA
+                </button>
+            `;
+        }
+    }
+
+    function disconnettiStrava() {
+        if (!confirm('Disconnettere Strava? I dati gia\' importati rimarranno.')) return;
+        clearStravaToken(); aggiornaStravaSection(); showToast('Disconnesso da Strava');
+    }
+
+    // ==== SYNC (con cadenza, frequenza cardiaca, calorie) ====
+    async function sincronizzaLite(mostraFeedback = true) {
+        const btn = document.getElementById('btn-sync-lite');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> SINCRONIZZAZIONE...'; }
+        const token = await getValidToken();
+        if (!token) {
+            if (mostraFeedback) showToast('Riconnetti Strava');
+            if (btn) { btn.disabled = false; btn.innerHTML = 'SINCRONIZZA STRAVA'; }
+            return;
+        }
+        try {
+            const existingIds = new Set(liteData.filter(a => a.strava_id).map(a => String(a.strava_id)));
+            let afterTimestamp = 0;
+            const ordinati = liteData.filter(a => a.strava_id).sort((a, b) => new Date(b.data) - new Date(a.data));
+            if (ordinati.length > 0) afterTimestamp = Math.floor(new Date(ordinati[0].data).getTime() / 1000);
+            let nuove = [];
+            let page = 1;
+            while (true) {
+                let apiUrl = `https://www.strava.com/api/v3/athlete/activities?per_page=100&page=${page}`;
+                if (afterTimestamp > 0) apiUrl += `&after=${afterTimestamp}`;
+                const res = await fetch(apiUrl, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!res.ok) break;
+                const activities = await res.json();
+                if (!activities.length) break;
+                for (const act of activities) {
+                    if (!TIPI_VALIDI.includes(act.type)) continue;
+                    if (existingIds.has(String(act.id))) continue;
+                    const distKm = act.distance / 1000;
+                    const oreDec = act.moving_time / 3600;
+                    const media = oreDec > 0 ? distKm / oreDec : 0;
+                    let nota = '';
+                    try {
+                        const detRes = await fetch(`https://www.strava.com/api/v3/activities/${act.id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                        if (detRes.ok) { const det = await detRes.json(); nota = det.description || ''; }
+                    } catch {}
+                    nuove.push({
+                        id: act.id, strava_id: act.id, data: act.start_date_local,
+                        distanza: parseFloat(distKm.toFixed(2)),
+                        tempo: parseFloat(oreDec.toFixed(4)),
+                        media: parseFloat(media.toFixed(2)),
+                        nome: act.name || '',
+                        nota: nota,
+                        dislivello: act.total_elevation_gain || 0,
+                        cadenza: act.average_cadence || 0,
+                        frequenza: act.has_heartrate ? (act.average_heartrate || 0) : 0,
+                        calorie: act.kilojoules ? Math.round(act.kilojoules) : 0
+                    });
+                }
+                if (activities.length < 100) break;
+                page++;
+            }
+            liteData = [...liteData, ...nuove].sort((a, b) => new Date(b.data) - new Date(a.data));
+            localStorage.setItem(K_RAW_LITE, JSON.stringify(liteData));
+            popolaAnniLite();
+            if (mostraFeedback) showToast(nuove.length > 0 ? `${nuove.length} nuove attivita' importate!` : 'Gia\' aggiornato!', 4000);
+        } catch (e) {
+            if (mostraFeedback) showToast('Errore sincronizzazione');
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = 'SINCRONIZZA STRAVA'; }
+        }
+    }
+
+    // ==== DIARIO LITE ====
+    function popolaAnniLite() {
+        const sel = document.getElementById('sel-anno-lite');
+        const selPdf = document.getElementById('sel-anno-pdf');
+        const valorePrecedente = sel.value;
+        const anni = [...new Set(liteData.map(a => new Date(a.data).getFullYear()))].sort((a,b) => b - a);
+        if (!anni.includes(currY)) anni.unshift(currY);
+        anni.sort((a,b) => b - a);
+        const optionsHtml = anni.map(y => `<option value="${y}">${y}</option>`).join('');
+        sel.innerHTML = optionsHtml;
+        sel.value = anni.includes(parseInt(valorePrecedente)) ? valorePrecedente : currY;
+        if (selPdf) {
+            const valorePrecedentePdf = selPdf.value;
+            selPdf.innerHTML = optionsHtml;
+            selPdf.value = anni.includes(parseInt(valorePrecedentePdf)) ? valorePrecedentePdf : currY;
+        }
+        disegnaLite();
+    }
+
+    function apriSuStrava(stravaId) {
+        if (!stravaId) return;
+        window.open('https://www.strava.com/activities/' + stravaId, '_blank');
+    }
+
+    function escapeHtml(s) {
+        return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function mostraDettaglio(stravaId) {
+        const a = liteData.find(x => String(x.strava_id) === String(stravaId));
+        if (!a) return;
+        const d = new Date(a.data);
+        const dataStr = d.toLocaleDateString('it-IT', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+        const km = parseFloat(a.distanza || 0).toFixed(1);
+        const tempo = formattaTempo(a.tempo);
+        const vel = a.media ? parseFloat(a.media).toFixed(1) + ' km/h' : '-';
+        const disliv = a.dislivello ? Math.round(a.dislivello).toLocaleString('it-IT') + ' m' : '-';
+        const cad = a.cadenza ? Math.round(a.cadenza) + ' rpm' : '-';
+        const bpm = a.frequenza ? Math.round(a.frequenza) + ' bpm' : '-';
+
+        document.getElementById('lite-modal-body').innerHTML = `
+            <div style="font-weight:900; font-size:1.05em; text-transform:capitalize; padding-right:20px;">${dataStr}</div>
+            ${a.nome ? `<div style="font-size:0.85em; opacity:0.7; margin-top:2px;">${escapeHtml(a.nome)}</div>` : ''}
+            ${a.nota ? `<div class="lite-modal-note">${escapeHtml(a.nota)}</div>` : '<div style="opacity:0.45; font-size:0.85em; margin:10px 0;">Nessuna annotazione</div>'}
+            <div class="lite-stats-grid" style="margin-top:6px;">
+                <div class="lite-stat"><small>KM</small><b>${km}</b></div>
+                <div class="lite-stat"><small>Tempo</small><b>${tempo}</b></div>
+                <div class="lite-stat"><small>Vel. media</small><b>${vel}</b></div>
+                <div class="lite-stat"><small>Dislivello+</small><b>${disliv}</b></div>
+                <div class="lite-stat"><small>Cadenza</small><b>${cad}</b></div>
+                <div class="lite-stat"><small>Battito</small><b>${bpm}</b></div>
+            </div>
+            <button class="btn-sync" style="margin-top:14px;" onclick="apriSuStrava(${a.strava_id})">APRI SU STRAVA</button>
+        `;
+        document.getElementById('lite-modal-overlay').style.display = 'flex';
+    }
+
+    function chiudiDettaglio() {
+        document.getElementById('lite-modal-overlay').style.display = 'none';
+    }
+
+    function disegnaLite() {
+        const sel = document.getElementById('sel-anno-lite');
+        const anno = parseInt(sel.value);
+        const cont = document.getElementById('lista-lite');
+        const recapCont = document.getElementById('recap-lite');
+        cont.innerHTML = '';
+        const lista = liteData.filter(a => new Date(a.data).getFullYear() === anno)
+                               .sort((a, b) => new Date(a.data) - new Date(b.data)); // gennaio -> dicembre
+
+        if (!lista.length) {
+            recapCont.innerHTML = '';
+            cont.innerHTML = '<div class="lite-empty">Nessuna attivita\' nel ' + anno + '</div>';
+            return;
+        }
+
+        // ---- Riepilogo annuale ----
+        let tKm = 0, tOre = 0, tDisliv = 0;
+        let cadSum = 0, cadCount = 0, bpmSum = 0, bpmCount = 0;
+        lista.forEach(a => {
+            tKm += parseFloat(a.distanza) || 0;
+            tOre += parseFloat(a.tempo) || 0;
+            tDisliv += a.dislivello || 0;
+            if (a.cadenza) { cadSum += a.cadenza; cadCount++; }
+            if (a.frequenza) { bpmSum += a.frequenza; bpmCount++; }
+        });
+        const medPond = tOre > 0 ? (tKm / tOre).toFixed(1) : '0.0';
+        const cadMedia = cadCount > 0 ? Math.round(cadSum / cadCount) + ' rpm' : '-';
+        const bpmMedio = bpmCount > 0 ? Math.round(bpmSum / bpmCount) + ' bpm' : '-';
+
+        recapCont.innerHTML = `
+            <div class="lite-recap">
+                <div style="font-size:0.85em;">
+                    <b>${anno}</b>: <b>${tKm.toFixed(1)} km</b> in <b>${lista.length}</b> attivita'
+                </div>
+                <div class="lite-recap-grid">
+                    <div><small>Tempo tot.</small><b>${formattaTempo(tOre)}</b></div>
+                    <div><small>Vel. media</small><b>${medPond} km/h</b></div>
+                    <div><small>Dislivello+</small><b>${Math.round(tDisliv).toLocaleString('it-IT')} m</b></div>
+                    <div><small>Cadenza media</small><b>${cadMedia}</b></div>
+                    <div><small>Battito medio</small><b>${bpmMedio}</b></div>
+                    <div><small>Attivita'</small><b>${lista.length}</b></div>
+                </div>
+            </div>`;
+
+        // ---- Lista attivita' ----
+        let meseCorrente = -1;
+        let html = '';
+        lista.forEach(a => {
+            const d = new Date(a.data);
+            const m = d.getMonth();
+            if (m !== meseCorrente) {
+                html += `<div class="lite-month-divider">${mesiNomi[m]}</div>`;
+                meseCorrente = m;
+            }
+            const badge = a.strava_id ? '<span class="strava-badge">STRAVA</span>' : '';
+            const dataStr = d.toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: '2-digit' });
+            const km = parseFloat(a.distanza || 0).toFixed(1);
+            const tempo = formattaTempo(a.tempo);
+            const disliv = a.dislivello ? Math.round(a.dislivello).toLocaleString('it-IT') + ' m' : '-';
+            const vel = a.media ? parseFloat(a.media).toFixed(1) + ' km/h' : '-';
+            const cad = a.cadenza ? Math.round(a.cadenza) + ' rpm' : '-';
+            const bpm = a.frequenza ? Math.round(a.frequenza) + ' bpm' : '-';
+            const clickAttr = a.strava_id ? ` onclick="mostraDettaglio(${a.strava_id})"` : '';
+            const notaEsc = a.nota ? escapeHtml(a.nota) : '';
+
+            html += `
+                <div class="lite-activity"${clickAttr}>
+                    <div class="lite-activity-head">
+                        <span class="lite-activity-date">${dataStr}</span>
+                        ${badge}
+                    </div>
+                    ${notaEsc ? `<div class="lite-activity-note">${notaEsc}</div>` : ''}
+                    <div class="lite-stats-grid">
+                        <div class="lite-stat"><small>KM</small><b>${km}</b></div>
+                        <div class="lite-stat"><small>Tempo</small><b>${tempo}</b></div>
+                        <div class="lite-stat"><small>Vel. media</small><b>${vel}</b></div>
+                        <div class="lite-stat"><small>Dislivello+</small><b>${disliv}</b></div>
+                        <div class="lite-stat"><small>Cadenza</small><b>${cad}</b></div>
+                        <div class="lite-stat"><small>Battito</small><b>${bpm}</b></div>
+                    </div>
+                </div>`;
+        });
+        cont.innerHTML = html;
+    }
+
+    // ==== NAV ====
+    function vaiA(id) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelectorAll('nav div').forEach(n => n.classList.remove('active'));
+        document.getElementById('nav-' + id).classList.add('active');
+        if (id === 'diario') disegnaLite();
+    }
+
+    // ==== EXPORT PDF ====
+    function scaricaPdfAnno() {
+        const sel = document.getElementById('sel-anno-pdf');
+        const anno = parseInt(sel.value);
+        const lista = liteData.filter(a => new Date(a.data).getFullYear() === anno)
+                               .sort((a, b) => new Date(a.data) - new Date(b.data));
+        if (!lista.length) { showToast('Nessuna attivita\' nel ' + anno); return; }
+        if (!window.jspdf) { showToast('Libreria PDF non disponibile, controlla la connessione'); return; }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const marginX = 14;
+        let y = 18;
+
+        let tKm = 0, tOre = 0, tDisliv = 0;
+        lista.forEach(a => { tKm += parseFloat(a.distanza) || 0; tOre += parseFloat(a.tempo) || 0; tDisliv += a.dislivello || 0; });
+        const medPond = tOre > 0 ? (tKm / tOre).toFixed(1) : '0.0';
+
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(251, 140, 0);
+        doc.text('Bainzuretta Lite - ' + anno, marginX, y);
+        y += 8;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(80, 80, 80);
+        doc.text(`${lista.length} attivita' - ${tKm.toFixed(1)} km - ${formattaTempo(tOre)} - media ${medPond} km/h - ${Math.round(tDisliv)} m D+`, marginX, y);
+        y += 10;
+
+        const headers = ['Data', 'Km', 'Tempo', 'Km/h', 'D+', 'Cad', 'Bpm'];
+        const colX = [marginX, marginX + 26, marginX + 46, marginX + 74, marginX + 96, marginX + 118, marginX + 140];
+
+        function stampaHeaderTabella() {
+            doc.setFont('courier', 'bold'); doc.setFontSize(9); doc.setTextColor(251, 140, 0);
+            headers.forEach((h, i) => doc.text(h, colX[i], y));
+            y += 5;
+            doc.setDrawColor(230, 230, 230); doc.line(marginX, y - 3, 196, y - 3);
+            doc.setFont('courier', 'normal'); doc.setTextColor(30, 30, 30);
+        }
+        function nuovaPagina() { doc.addPage(); y = 18; stampaHeaderTabella(); }
+
+        let meseCorrente = -1;
+        stampaHeaderTabella();
+
+        lista.forEach(a => {
+            const d = new Date(a.data);
+            const m = d.getMonth();
+            if (m !== meseCorrente) {
+                if (y > 270) nuovaPagina();
+                y += 2;
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(251, 140, 0);
+                doc.text(mesiNomi[m], marginX, y);
+                y += 6;
+                doc.setFont('courier', 'normal'); doc.setFontSize(9); doc.setTextColor(30, 30, 30);
+                meseCorrente = m;
+            }
+            if (y > 280) nuovaPagina();
+            const dataStr = d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
+            const km = parseFloat(a.distanza || 0).toFixed(1);
+            const tempo = formattaTempo(a.tempo);
+            const vel = a.media ? parseFloat(a.media).toFixed(1) : '-';
+            const disliv = a.dislivello ? Math.round(a.dislivello) + 'm' : '-';
+            const cad = a.cadenza ? String(Math.round(a.cadenza)) : '-';
+            const bpm = a.frequenza ? String(Math.round(a.frequenza)) : '-';
+            [dataStr, km, tempo, vel, disliv, cad, bpm].forEach((val, i) => doc.text(val, colX[i], y));
+            y += 5.5;
+        });
+
+        doc.save(`Bainzuretta_${anno}.pdf`);
+        showToast('PDF scaricato!');
+    }
+
+    // ==== INIT ====
+    window.onload = async () => {
+        const s = localStorage.getItem(K_RAW_LITE);
+        if (s) liteData = JSON.parse(s);
+        const savedSecret = localStorage.getItem(K_SECRET);
+        if (savedSecret) window._stravaSecret = savedSecret;
+        stravaToken = loadStravaToken();
+        aggiornaStravaSection();
+        popolaAnniLite();
+        if (window.location.search.includes('code=')) { await handleStravaCallback(); }
+        else if (stravaToken) { sincronizzaLite(false); }
+    };
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+</script>
+</body>
+</html>
