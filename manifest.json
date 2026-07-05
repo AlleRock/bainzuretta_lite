@@ -1,0 +1,15 @@
+{
+  "name": "Bainzuretta Lite",
+  "short_name": "Bainz Lite",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#fb8c00",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/AlleRock/bainzuretta_lite/main/icona.png?v=1",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
