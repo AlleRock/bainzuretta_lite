@@ -67,10 +67,6 @@
         .lite-activity-date { font-weight: 900; font-size: 0.9em; color: var(--text); white-space: nowrap; }
         .lite-activity-note { font-size: 0.8em; font-style: italic; opacity: 0.75; line-height: 1.35; margin: 0 2px 8px 2px; white-space: normal; word-break: break-word; }
 
-        .lite-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10000; align-items: center; justify-content: center; padding: 20px; padding-top: calc(20px + env(safe-area-inset-top)); padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
-        .lite-modal { background: var(--card); border-radius: 20px; padding: 20px; max-width: 420px; width: 100%; max-height: 85vh; overflow-y: auto; -webkit-overflow-scrolling: touch; position: relative; }
-        .lite-modal-close { position: absolute; top: 12px; right: 14px; font-size: 1.4em; font-weight: 900; color: #999; cursor: pointer; line-height: 1; }
-        .lite-modal-note { font-size: 0.95em; font-style: italic; line-height: 1.5; background: rgba(251,140,0,0.08); border-radius: 12px; padding: 12px; margin: 4px 0 12px 0; white-space: pre-wrap; word-break: break-word; }
         .lite-recap { background: var(--primary); color: white; padding: 10px 12px; border-radius: 15px; margin-top: 10px; }
         .lite-recap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }
         .lite-recap-grid div { text-align: center; }
@@ -86,13 +82,6 @@
 <body>
 
 <div id="toast"></div>
-
-<div class="lite-modal-overlay" id="lite-modal-overlay" onclick="chiudiDettaglio()">
-    <div class="lite-modal" onclick="event.stopPropagation()">
-        <span class="lite-modal-close" onclick="chiudiDettaglio()">&times;</span>
-        <div id="lite-modal-body"></div>
-    </div>
-</div>
 <header>Bainzuretta Lite</header>
 
 <div id="pages">
@@ -384,38 +373,6 @@
         return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
-    function mostraDettaglio(stravaId) {
-        const a = liteData.find(x => String(x.strava_id) === String(stravaId));
-        if (!a) return;
-        const d = new Date(a.data);
-        const dataStr = d.toLocaleDateString('it-IT', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
-        const km = parseFloat(a.distanza || 0).toFixed(1);
-        const tempo = formattaTempo(a.tempo);
-        const vel = a.media ? parseFloat(a.media).toFixed(1) + ' km/h' : '-';
-        const disliv = a.dislivello ? Math.round(a.dislivello).toLocaleString('it-IT') + ' m' : '-';
-        const cad = a.cadenza ? Math.round(a.cadenza) + ' rpm' : '-';
-        const bpm = a.frequenza ? Math.round(a.frequenza) + ' bpm' : '-';
-
-        document.getElementById('lite-modal-body').innerHTML = `
-            <div style="font-weight:900; font-size:1.05em; text-transform:capitalize; padding-right:20px;">${dataStr}</div>
-            ${a.nome ? `<div class="lite-modal-note">${escapeHtml(a.nome)}</div>` : '<div style="opacity:0.45; font-size:0.85em; margin:10px 0;">Nessun nome attivita\'</div>'}
-            <div class="lite-stats-grid" style="margin-top:6px;">
-                <div class="lite-stat"><small>KM</small><b>${km}</b></div>
-                <div class="lite-stat"><small>Tempo</small><b>${tempo}</b></div>
-                <div class="lite-stat"><small>Vel. media</small><b>${vel}</b></div>
-                <div class="lite-stat"><small>Dislivello+</small><b>${disliv}</b></div>
-                <div class="lite-stat"><small>Cadenza</small><b>${cad}</b></div>
-                <div class="lite-stat"><small>Battito</small><b>${bpm}</b></div>
-            </div>
-            <button class="btn-sync" style="margin-top:14px;" onclick="apriSuStrava(${a.strava_id})">APRI SU STRAVA</button>
-        `;
-        document.getElementById('lite-modal-overlay').style.display = 'flex';
-    }
-
-    function chiudiDettaglio() {
-        document.getElementById('lite-modal-overlay').style.display = 'none';
-    }
-
     function disegnaLite() {
         const sel = document.getElementById('sel-anno-lite');
         const anno = parseInt(sel.value);
@@ -478,7 +435,7 @@
             const vel = a.media ? parseFloat(a.media).toFixed(1) + ' km/h' : '-';
             const cad = a.cadenza ? Math.round(a.cadenza) + ' rpm' : '-';
             const bpm = a.frequenza ? Math.round(a.frequenza) + ' bpm' : '-';
-            const clickAttr = a.strava_id ? ` onclick="mostraDettaglio(${a.strava_id})"` : '';
+            const clickAttr = a.strava_id ? ` onclick="apriSuStrava(${a.strava_id})"` : '';
             const notaEsc = a.nome ? escapeHtml(a.nome) : '';
 
             html += `
